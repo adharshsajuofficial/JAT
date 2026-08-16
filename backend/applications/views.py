@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes as permission_classes_decorator
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import viewsets, status
@@ -20,7 +20,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
     @api_view(["POST"])
-    @permission_classes([AllowAny])
+    @permission_classes_decorator([AllowAny])
     def register(request):
         serializer = RegisterSerializer(data=request.data)
 
