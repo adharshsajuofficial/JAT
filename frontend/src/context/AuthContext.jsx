@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/auth/token/', {
+      const response = await axios.post('https://jat-backend-5f2n.onrender.com/api/auth/token/', {
         username,
         password,
       });
