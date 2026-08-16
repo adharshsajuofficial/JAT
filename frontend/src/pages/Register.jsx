@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Sparkles, Eye, EyeOff, Info } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { Sparkles, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export const Register = () => {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -13,7 +17,8 @@ export const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,10 +48,18 @@ export const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setServerError('');
     if (validate()) {
-      setSubmitted(true);
+      setLoading(true);
+      const res = await register(formData.username, formData.email, formData.password);
+      setLoading(false);
+      if (res.success) {
+        navigate('/dashboard');
+      } else {
+        setServerError(res.error);
+      }
     }
   };
 
@@ -63,110 +76,114 @@ export const Register = () => {
           <p className="auth-subtitle">Create your account</p>
         </div>
 
-        {submitted ? (
-          <div className="auth-notice" style={{ background: 'var(--accent-light)', color: 'var(--text-main)', padding: '1.25rem', textAlign: 'center' }}>
-            <Info size={24} style={{ color: 'var(--accent-primary)', margin: '0 auto 0.5rem auto' }} />
-            <h4 style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Backend Connection Required</h4>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              The Django REST API currently provides authentication tokens for existing user accounts. Direct user registration endpoint will be enabled when added to the backend server.
-            </p>
-            <Link to="/login" className="btn-primary" style={{ display: 'inline-flex', marginTop: '1rem', textDecoration: 'none' }}>
-              Back to Login
-            </Link>
+        {serverError && (
+          <div className="auth-notice" style={{ background: 'var(--status-rejected-bg)', color: 'var(--status-rejected)', marginBottom: '1.25rem' }}>
+            {serverError}
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label" htmlFor="username">
-                Username *
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                className="form-input"
-                placeholder="Choose a username"
-                value={formData.username}
-                onChange={handleChange}
-              />
-              {errors.username && <span className="form-error">{errors.username}</span>}
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="email">
-                Email Address *
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                className="form-input"
-                placeholder="name@example.com"
-                value={formData.email}
-                onChange={handleChange}
-              />
-              {errors.email && <span className="form-error">{errors.email}</span>}
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="password">
-                Password *
-              </label>
-              <div className="password-field">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  className="form-input"
-                  style={{ width: '100%', paddingRight: '2.5rem' }}
-                  placeholder="Create a password"
-                  value={formData.password}
-                  onChange={handleChange}
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {errors.password && <span className="form-error">{errors.password}</span>}
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="confirmPassword">
-                Confirm Password *
-              </label>
-              <div className="password-field">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  className="form-input"
-                  style={{ width: '100%', paddingRight: '2.5rem' }}
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  tabIndex={-1}
-                >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {errors.confirmPassword && <span className="form-error">{errors.confirmPassword}</span>}
-            </div>
-
-            <button type="submit" className="btn-primary" style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem' }}>
-              Create Account
-            </button>
-          </form>
         )}
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="form-group">
+            <label className="form-label" htmlFor="username">
+              Username *
+            </label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              className="form-input"
+              placeholder="Choose a username"
+              value={formData.username}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            {errors.username && <span className="form-error">{errors.username}</span>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="email">
+              Email Address *
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              className="form-input"
+              placeholder="name@example.com"
+              value={formData.email}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            {errors.email && <span className="form-error">{errors.email}</span>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="password">
+              Password *
+            </label>
+            <div className="password-field">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                className="form-input"
+                style={{ width: '100%', paddingRight: '2.5rem' }}
+                placeholder="Create a password"
+                value={formData.password}
+                onChange={handleChange}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {errors.password && <span className="form-error">{errors.password}</span>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="confirmPassword">
+              Confirm Password *
+            </label>
+            <div className="password-field">
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                className="form-input"
+                style={{ width: '100%', paddingRight: '2.5rem' }}
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                tabIndex={-1}
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {errors.confirmPassword && <span className="form-error">{errors.confirmPassword}</span>}
+          </div>
+
+          <button type="submit" className="btn-primary" style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem' }} disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="spinner" size={18} />
+                <span>Creating account...</span>
+              </>
+            ) : (
+              <span>Create Account</span>
+            )}
+          </button>
+        </form>
 
         <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
           Already have an account?{' '}
@@ -180,3 +197,4 @@ export const Register = () => {
 };
 
 export default Register;
+

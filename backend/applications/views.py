@@ -19,53 +19,30 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
-    @api_view(["POST"])
-    @permission_classes_decorator([AllowAny])
-    def register(request):
-        serializer = RegisterSerializer(data=request.data)
-
-        if serializer.is_valid():
-            user = serializer.save()
-
-            return Response(
-                {
-                    "message": "User registered successfully",
-                    "username": user.username,
-                },
-                status=status.HTTP_201_CREATED
-            )
-
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        username = request.data.get("username")
-        password = request.data.get("password")
-
-        if not username or not password:
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
             return Response(
-                {"error": "Username and password are required."},
-                status=status.HTTP_400_BAD_REQUEST
+                {
+                    "message": "User registered successfully.",
+                    "username": user.username
+                },
+                status=status.HTTP_201_CREATED
             )
 
-        if User.objects.filter(username=username).exists():
-            return Response(
-                {"error": "Username already exists."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        user = User.objects.create_user(
-            username=username,
-            password=password
-        )
+        # Extract first validation error message
+        first_field = next(iter(serializer.errors))
+        first_err = serializer.errors[first_field]
+        if isinstance(first_err, list) and len(first_err) > 0:
+            error_msg = f"{first_field}: {first_err[0]}" if first_field != "non_field_errors" else str(first_err[0])
+        else:
+            error_msg = str(first_err)
 
         return Response(
-            {"message": "User registered successfully."},
-            status=status.HTTP_201_CREATED
-        )
+            {"error": error_msg},
+            status=status.HTTP_400_BAD_REQUEST
+        )

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { setLogoutCallback } from '../services/api';
+import { setLogoutCallback, API_BASE_URL } from '../services/api';
 import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext();
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post('https://jat-backend-5f2n.onrender.com/api/auth/token/', {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/token/`, {
         username,
         password,
       });
@@ -84,6 +84,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const register = async (username, email, password) => {
+    try {
+      await axios.post(`${API_BASE_URL}/api/auth/register/`, {
+        username,
+        email,
+        password,
+      });
+
+      // Auto login upon registration
+      return await login(username, password);
+    } catch (error) {
+      let message = 'Registration failed.';
+      if (error.response?.data) {
+        if (typeof error.response.data.error === 'string') {
+          message = error.response.data.error;
+        } else if (typeof error.response.data.detail === 'string') {
+          message = error.response.data.detail;
+        } else if (typeof error.response.data === 'object') {
+          message = Object.values(error.response.data).flat().join(' ');
+        }
+      }
+      return { success: false, error: message };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -92,6 +117,7 @@ export const AuthProvider = ({ children }) => {
         refreshToken,
         isAuthenticated: !!accessToken,
         login,
+        register,
         logout,
         loading,
       }}
@@ -100,6 +126,7 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
